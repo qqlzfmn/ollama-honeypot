@@ -23,10 +23,19 @@
 
 ## 快速开始
 
+容器以 UID 10001 运行，`./data` 必须归属该用户，否则启动就会报错退出：
+
 ```bash
+mkdir -p data && sudo chown -R 10001:10001 data
 docker compose up -d --build
 docker compose logs -f honeypot
 python3 scripts/report.py data/events.jsonl
+```
+
+若不想改属主，就让容器用户对齐你自己：
+
+```bash
+HONEYPOT_UID=$(id -u) HONEYPOT_GID=$(id -g) docker compose up -d
 ```
 
 本机试跑（不需要容器）：

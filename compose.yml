@@ -1,0 +1,26 @@
+services:
+  honeypot:
+    build: .
+    image: ollama-honeypot:0.1.0
+    container_name: ollama-honeypot
+    ports:
+      # 只监听 11434，且不做任何出站回调
+      - "${HONEYPOT_BIND:-0.0.0.0:11434}:11434"
+    environment:
+      HONEYPOT_OLLAMA_VERSION: "0.5.7"
+      HONEYPOT_LOG_PATH: /data/events.jsonl
+      HONEYPOT_MAX_BODY_BYTES: "262144"
+      HONEYPOT_MAX_FIELD_CHARS: "4096"
+    volumes:
+      # 唯一可写挂载点：事件日志
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    restart: unless-stopped

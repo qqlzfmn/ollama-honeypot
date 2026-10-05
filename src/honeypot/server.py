@@ -116,17 +116,20 @@ class HoneypotHandler(BaseHTTPRequestHandler):
 
     def _record_internal_error(self, exc: Exception) -> None:
         writer: EventWriter | None = getattr(self.server, "writer", None)
-        if writer is None:
-            return
-        writer.write(
-            {
-                "remote_ip": sanitize(self.client_address[0], MAX_REMOTE_FIELD_CHARS),
-                "method": getattr(self, "command", "-"),
-                "path": sanitize(getattr(self, "path", "-"), writer.max_field_chars),
-                "category": "internal_error",
-                "error": sanitize(f"{type(exc).__name__}: {exc}", writer.max_field_chars),
-            }
-        )
+        limit = writer.max_field_chars if writer else MAX_REMOTE_FIELD_CHARS
+        record = {
+            "remote_ip": sanitize(self.client_address[0], MAX_REMOTE_FIELD_CHARS),
+            "method": getattr(self, "command", "-"),
+            "path": sanitize(getattr(self, "path", "-"), limit),
+            "category": "internal_error",
+            "error": sanitize(f"{type(exc).__name__}: {exc}", limit),
+        }
+        try:
+            if writer is None:
+                raise RuntimeError("事件写入器未初始化")
+            writer.write(record)
+        except Exception as log_exc:  # 记录失败也不能再抛，否则请求线程直接崩掉
+            print(f"[honeypot] 事件未能落盘（{log_exc}）：{record}", flush=True)
 
 
 class HoneypotServer(ThreadingHTTPServer):

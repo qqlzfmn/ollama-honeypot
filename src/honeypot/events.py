@@ -14,6 +14,17 @@ _DROP_CHARS[0x7F] = None
 TRUNCATED_SUFFIX = "…<truncated>"
 
 
+class LogPathError(RuntimeError):
+    """日志路径不可写。启动阶段就要失败，不能等到有流量时才发现。"""
+
+    def __init__(self, path: str, exc: OSError) -> None:
+        super().__init__(
+            f"日志路径不可写：{path}（{exc.strerror}）。"
+            "容器内以非 root 运行，宿主目录必须归属容器用户，例如："
+            "mkdir -p data && sudo chown -R 10001:10001 data"
+        )
+
+
 def sanitize(value: str, max_chars: int) -> str:
     """把不可信文本压成可安全写入日志的单行文本。"""
     text = value.translate(_DROP_CHARS)
@@ -30,8 +41,13 @@ class EventWriter:
         self._max_field_chars = max_field_chars
         self._lock = threading.Lock()
         directory = os.path.dirname(path)
-        if directory:
-            os.makedirs(directory, exist_ok=True)
+        try:
+            if directory:
+                os.makedirs(directory, exist_ok=True)
+            with open(path, "a", encoding="utf-8"):
+                pass
+        except OSError as exc:
+            raise LogPathError(path, exc) from exc
 
     @property
     def max_field_chars(self) -> int:

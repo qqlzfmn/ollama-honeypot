@@ -3,6 +3,8 @@ services:
     build: .
     image: ollama-honeypot:0.1.0
     container_name: ollama-honeypot
+    # 用 HONEYPOT_UID/HONEYPOT_GID 对齐宿主目录属主，避免挂载目录不可写
+    user: "${HONEYPOT_UID:-10001}:${HONEYPOT_GID:-10001}"
     ports:
       # 只监听 11434，且不做任何出站回调
       - "${HONEYPOT_BIND:-0.0.0.0:11434}:11434"

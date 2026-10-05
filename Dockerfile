@@ -10,7 +10,7 @@ WORKDIR /app
 COPY src/ /app/src/
 COPY scripts/ /app/scripts/
 
-RUN useradd --system --uid 10001 --no-create-home honeypot \
+RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin honeypot \
     && mkdir -p /data \
     && chown honeypot:honeypot /data
 
